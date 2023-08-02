@@ -166,11 +166,11 @@ async function run() {
 		app.post("/team/create",upload.single("memberImg"), async (req, res) => {
 			const memberName = req.body.memberName;
 			const memberDesi = req.body.memberDesi;
-			const memberDesc = req.body.memberDesc;
+			const memberCategory = req.body.memberCategory;
 			const memberImg = req.file.path.replace(/\\/g, "/");
 			const createdAt=new Date();
 
-			const newMember = { memberName, memberDesi, memberDesc, memberImg,createdAt };
+			const newMember = { memberName, memberDesi, memberCategory, memberImg,createdAt };
 
 			const newData = await teamCollection.insertOne(newMember);
 			res.send({ Message: "New Member Added Successfully", newData });
@@ -201,6 +201,9 @@ async function run() {
 		app.put("/team/:id", async (req, res) => {
 			const id = req.params.id;
 			const team = req.body;
+
+			
+			console.log(team)
 			const filter = { _id: new ObjectId(id) };
 			const options = { upsert: true };
 			const updateDoc = {
@@ -273,9 +276,10 @@ async function run() {
 run().catch(console.dir);
 
 app.get("/", (req, res) => {
-	res.send("Hello From SunRise!");
+	res.send("Hello From Digital Cardiology Research Group!");
+	
 });
 
 app.listen(port, () => {
-	console.log(`SunRise app listening on port ${port}`);
+	console.log(`Digital Cardiology Research Group listening on port ${port}`);
 });

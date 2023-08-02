@@ -267,6 +267,8 @@ async function run() {
 				createdAt,
 			};
 
+			console.log(newWork)
+
 			const newData = await publicationsCollection.insertOne(newWork);
 			res.send({ Message: "New publications Added Successfully", newData });
 		});

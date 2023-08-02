@@ -4,14 +4,13 @@ require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const multer = require("multer");
 const bodyParser = require("body-parser");
+const fs = require("fs");
 
 const app = express();
 const port = process.env.PORT || 5000;
 
-
 // hamidvirtualbd
 // L7Qp4SqUZh3sZtNI
-
 
 //Middleware
 app.use(cors());
@@ -51,8 +50,9 @@ async function run() {
 		const projectsCollection = client.db("lab-website").collection("projects");
 		const newsCollection = client.db("lab-website").collection("news");
 		const teamCollection = client.db("lab-website").collection("team");
-		const publicationsCollection = client.db("lab-website").collection("publications");
-		
+		const publicationsCollection = client
+			.db("lab-website")
+			.collection("publications");
 
 		/*----------------------------
              projects Collection
@@ -67,7 +67,7 @@ async function run() {
 			const proDesc = req.body.proDesc;
 			const proImg = req.file.path.replace(/\\/g, "/");
 
-			const newProject = { proName, proCategory,proShDesc, proDesc, proImg };
+			const newProject = { proName, proCategory, proShDesc, proDesc, proImg };
 
 			const newData = await projectsCollection.insertOne(newProject);
 			res.send({ Message: "Project Added Successfully", newData });
@@ -89,13 +89,25 @@ async function run() {
 
 		app.delete("/projects/:id", async (req, res) => {
 			const id = req.params.id;
-			const deleteData = await projectsCollection.deleteOne({
-				_id: new ObjectId(id),
-			});
-			res.send({ Message: "data Deleted", deleteData });
-		});
-
-
+		  
+			const projectData = await projectsCollection.findOne({ _id: new ObjectId(id) });
+			if (!projectData) {
+			  return res.status(404).send({ Message: "Project not found" });
+			}
+		  
+			// Delete the project data from the database
+			const deleteData = await projectsCollection.deleteOne({ _id: new ObjectId(id) });
+			// Now, delete the associated image file from the "uploads" directory
+			const imagePath = projectData.proImg;
+			try {
+			  fs.unlinkSync(imagePath); // This will delete the file synchronously
+			  console.log("Image deleted successfully");
+			} catch (err) {
+			  console.error("Error deleting image:", err);
+			}
+		  
+			res.send({ Message: "Project deleted", deleteData });
+		  });
 
 		app.put("/projects/:id", async (req, res) => {
 			const id = req.params.id;
@@ -117,8 +129,8 @@ async function run() {
              News Collection
         ------------------------------*/
 
-		app.post("/news/create",  async (req, res) => {
-			const data=req.body;
+		app.post("/news/create", async (req, res) => {
+			const data = req.body;
 			const newData = await newsCollection.insertOne(data);
 			res.send({ Message: "News Added Successfully", newData });
 		});
@@ -157,20 +169,24 @@ async function run() {
 			res.send({ result, news });
 		});
 
-
-		
 		/*----------------------------
              Team Members Collection
         ------------------------------*/
 
-		app.post("/team/create",upload.single("memberImg"), async (req, res) => {
+		app.post("/team/create", upload.single("memberImg"), async (req, res) => {
 			const memberName = req.body.memberName;
 			const memberDesi = req.body.memberDesi;
 			const memberCategory = req.body.memberCategory;
 			const memberImg = req.file.path.replace(/\\/g, "/");
-			const createdAt=new Date();
+			const createdAt = new Date();
 
-			const newMember = { memberName, memberDesi, memberCategory, memberImg,createdAt };
+			const newMember = {
+				memberName,
+				memberDesi,
+				memberCategory,
+				memberImg,
+				createdAt,
+			};
 
 			const newData = await teamCollection.insertOne(newMember);
 			res.send({ Message: "New Member Added Successfully", newData });
@@ -190,20 +206,40 @@ async function run() {
 			res.send(data);
 		});
 
+
 		app.delete("/team/:id", async (req, res) => {
 			const id = req.params.id;
+
+			const memberData = await teamCollection.findOne({
+				_id: new ObjectId(id),
+			});
+			if (!memberData) {
+				return res.status(404).send({ Message: "Member not found" });
+			}
+
+			// Delete the member data from the database
 			const deleteData = await teamCollection.deleteOne({
 				_id: new ObjectId(id),
 			});
-			res.send({ Message: "data Deleted", deleteData });
+
+			// Now, delete the associated image file from the "uploads" directory
+			const imagePath = memberData.memberImg;
+			try {
+				fs.unlinkSync(imagePath); // This will delete the file synchronously
+				console.log("Image deleted successfully");
+			} catch (err) {
+				console.error("Error deleting image:", err);
+			}
+
+			res.send({ Message: "Member deleted", deleteData });
 		});
+
 
 		app.put("/team/:id", async (req, res) => {
 			const id = req.params.id;
 			const team = req.body;
 
-			
-			console.log(team)
+			console.log(team);
 			const filter = { _id: new ObjectId(id) };
 			const options = { upsert: true };
 			const updateDoc = {
@@ -213,18 +249,23 @@ async function run() {
 			res.send({ result, team });
 		});
 
-
 		/*----------------------------
             publications Collection
         ------------------------------*/
 
-		app.post("/publications/create",upload.single("workImg"), async (req, res) => {
+		app.post("/publications/create", async (req, res) => {
+
 			const publiCategory = req.body.publiCategory;
 			const publicationsLink = req.body.publicationsLink;
 			const publicationsDesc = req.body.publicationsDesc;
-			const createdAt=new Date();
+			const createdAt = new Date();
 
-			const newWork = { publiCategory, publicationsLink, publicationsDesc,createdAt };
+			const newWork = {
+				publiCategory,
+				publicationsLink,
+				publicationsDesc,
+				createdAt,
+			};
 
 			const newData = await publicationsCollection.insertOne(newWork);
 			res.send({ Message: "New publications Added Successfully", newData });
@@ -267,17 +308,14 @@ async function run() {
 			);
 			res.send({ result, work });
 		});
-
-
 	} finally {
 	}
-};
+}
 
 run().catch(console.dir);
 
 app.get("/", (req, res) => {
 	res.send("Hello From Digital Cardiology Research Group!");
-	
 });
 
 app.listen(port, () => {

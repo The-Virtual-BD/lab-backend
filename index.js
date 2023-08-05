@@ -113,8 +113,6 @@ async function run() {
 			res.send({ Message: "Project deleted", deleteData });
 		});
 
-		
-
 		app.put("/projects/:id", upload.single("proImg"), async (req, res) => {
 			const id = req.params.id;
 			const project = req.body;
@@ -143,10 +141,12 @@ async function run() {
 			const updateDoc = {
 				$set: project,
 			};
-			const result = await projectsCollection.updateOne(filter, updateDoc, options);
+			const result = await projectsCollection.updateOne(
+				filter,
+				updateDoc,
+				options
+			);
 			res.send({ result, project });
-
-		
 		});
 
 		/*----------------------------

@@ -89,40 +89,64 @@ async function run() {
 
 		app.delete("/projects/:id", async (req, res) => {
 			const id = req.params.id;
-		  
-			const projectData = await projectsCollection.findOne({ _id: new ObjectId(id) });
+
+			const projectData = await projectsCollection.findOne({
+				_id: new ObjectId(id),
+			});
 			if (!projectData) {
-			  return res.status(404).send({ Message: "Project not found" });
+				return res.status(404).send({ Message: "Project not found" });
 			}
-		  
+
 			// Delete the project data from the database
-			const deleteData = await projectsCollection.deleteOne({ _id: new ObjectId(id) });
+			const deleteData = await projectsCollection.deleteOne({
+				_id: new ObjectId(id),
+			});
 			// Now, delete the associated image file from the "uploads" directory
 			const imagePath = projectData.proImg;
 			try {
-			  fs.unlinkSync(imagePath); // This will delete the file synchronously
-			  console.log("Image deleted successfully");
+				fs.unlinkSync(imagePath); // This will delete the file synchronously
+				console.log("Image deleted successfully");
 			} catch (err) {
-			  console.error("Error deleting image:", err);
+				console.error("Error deleting image:", err);
 			}
-		  
-			res.send({ Message: "Project deleted", deleteData });
-		  });
 
-		app.put("/projects/:id", async (req, res) => {
+			res.send({ Message: "Project deleted", deleteData });
+		});
+
+		
+
+		app.put("/projects/:id", upload.single("proImg"), async (req, res) => {
 			const id = req.params.id;
-			const product = req.body;
+			const project = req.body;
+			console.log(project);
+
+			// Check if a new image is provided in the request
+			if (req.file) {
+				// Process the new image and store it
+				const projImgPath = req.file.path;
+
+				// Delete the old image if it exists
+				if (project.proImg) {
+					try {
+						fs.unlinkSync(project.proImg);
+						console.log("Old image deleted:", project.proImg);
+					} catch (error) {
+						console.log("Error deleting old image:", error);
+					}
+				}
+
+				project.proImg = projImgPath;
+			}
+
 			const filter = { _id: new ObjectId(id) };
 			const options = { upsert: true };
 			const updateDoc = {
-				$set: product,
+				$set: project,
 			};
-			const result = await projectsCollection.updateOne(
-				filter,
-				updateDoc,
-				options
-			);
-			res.send({ result, product });
+			const result = await projectsCollection.updateOne(filter, updateDoc, options);
+			res.send({ result, project });
+
+		
 		});
 
 		/*----------------------------
@@ -206,7 +230,6 @@ async function run() {
 			res.send(data);
 		});
 
-
 		app.delete("/team/:id", async (req, res) => {
 			const id = req.params.id;
 
@@ -234,12 +257,28 @@ async function run() {
 			res.send({ Message: "Member deleted", deleteData });
 		});
 
-
-		app.put("/team/:id", async (req, res) => {
+		app.put("/team/:id", upload.single("memberImg"), async (req, res) => {
 			const id = req.params.id;
 			const team = req.body;
 
-			console.log(team);
+			// Check if a new image is provided in the request
+			if (req.file) {
+				// Process the new image and store it
+				const memberImgPath = req.file.path;
+
+				// Delete the old image if it exists
+				if (team.memberImg) {
+					try {
+						fs.unlinkSync(team.memberImg);
+						console.log("Old image deleted:", team.memberImg);
+					} catch (error) {
+						console.log("Error deleting old image:", error);
+					}
+				}
+
+				team.memberImg = memberImgPath;
+			}
+
 			const filter = { _id: new ObjectId(id) };
 			const options = { upsert: true };
 			const updateDoc = {
@@ -254,7 +293,6 @@ async function run() {
         ------------------------------*/
 
 		app.post("/publications/create", async (req, res) => {
-
 			const publiCategory = req.body.publiCategory;
 			const publicationsLink = req.body.publicationsLink;
 			const publicationsDesc = req.body.publicationsDesc;
@@ -267,7 +305,7 @@ async function run() {
 				createdAt,
 			};
 
-			console.log(newWork)
+			console.log(newWork);
 
 			const newData = await publicationsCollection.insertOne(newWork);
 			res.send({ Message: "New publications Added Successfully", newData });
